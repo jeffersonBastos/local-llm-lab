@@ -99,7 +99,9 @@ def extract_code(text):
     # Longest fenced block that looks like code — models sometimes echo the
     # instruction's "```python code block." phrase in prose, producing bogus
     # tiny "blocks"; last-block or first-block heuristics both get fooled.
-    blocks = re.findall(r"```(?:python)?\n(.*?)```", text, re.DOTALL)
+    # Info string after ``` is matched loosely: models echo prompt phrases
+    # there (seen: "```python code block.") and a strict ```python\n misses it.
+    blocks = re.findall(r"```[^\n]*\n(.*?)```", text, re.DOTALL)
     code_blocks = [b for b in blocks if "def " in b or "class " in b] or blocks
     return max(code_blocks, key=len) if code_blocks else text
 
