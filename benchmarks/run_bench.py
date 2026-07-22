@@ -96,8 +96,12 @@ def stream_completion(base, model, prompt, max_tokens, timeout=600):
 
 
 def extract_code(text):
+    # Longest fenced block that looks like code — models sometimes echo the
+    # instruction's "```python code block." phrase in prose, producing bogus
+    # tiny "blocks"; last-block or first-block heuristics both get fooled.
     blocks = re.findall(r"```(?:python)?\n(.*?)```", text, re.DOTALL)
-    return blocks[-1] if blocks else text  # fall back to raw text
+    code_blocks = [b for b in blocks if "def " in b or "class " in b] or blocks
+    return max(code_blocks, key=len) if code_blocks else text
 
 
 def grade(code, tests):
@@ -124,6 +128,8 @@ def main():
     ap.add_argument("--hardware-note", default="", help='e.g. "nothing else on GPU"')
     ap.add_argument("--notes", default="")
     ap.add_argument("--max-tokens", type=int, default=1200)
+    ap.add_argument("--limit", type=int, default=0,
+                    help="run only the first N tasks (harness validation; n_tasks in the record reflects the subset)")
     ap.add_argument("--price-in", type=float, default=REF_PRICE_IN)
     ap.add_argument("--price-out", type=float, default=REF_PRICE_OUT)
     args = ap.parse_args()
@@ -138,6 +144,8 @@ def main():
     if not model:
         model = http_json(f"{base}/v1/models")["data"][0]["id"]
     suite = json.load(open(args.suite))
+    if args.limit:
+        suite["tasks"] = suite["tasks"][: args.limit]
 
     print(f"suite={suite['suite']}-{suite['version']}  model={model}  server={base}")
     results, ttfts, tok_rates = [], [], []
