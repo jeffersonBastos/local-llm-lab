@@ -1,0 +1,12 @@
+# Secrets / machine-specific — never commit
+.env
+.claude/settings.local.json
+
+# Benchmark scratch
+benchmarks/.work/
+__pycache__/
+*.pyc
+.DS_Store
+
+# local tooling pin
+.tool-versions
