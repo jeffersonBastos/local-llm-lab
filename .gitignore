@@ -10,3 +10,5 @@ __pycache__/
 
 # local tooling pin
 .tool-versions
+local-model-test/
+local-model-test-2/
