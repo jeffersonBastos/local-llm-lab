@@ -1,6 +1,10 @@
 # Secrets / machine-specific — never commit
 .env
 .claude/settings.local.json
+CLAUDE.local.md
+
+# Internal log — feeds a LinkedIn post draft, not for the public repo
+DEVLOG.md
 
 # Benchmark scratch
 benchmarks/.work/

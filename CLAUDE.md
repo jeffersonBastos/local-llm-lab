@@ -1,40 +1,32 @@
 # local-llm-lab
 
-Claude Code → LAN LM Studio (Bionic) local-model routing + benchmark infra.
-Read `README.md` for setup, `DEVLOG.md` for history, `benchmarks/README.md`
-for the results schema. Server details (IP, model) live in `.env` (gitignored).
+Claude Code → LAN LM Studio local-model routing + benchmark infra.
+Read `README.md` for setup, `benchmarks/README.md` for the results schema.
+Server details (IP, model) live in `.env` (gitignored).
 
-## Server management (Windows box, over SSH)
-
-- SSH alias: `ssh winbox` (dedicated key; never modify the user's other keys).
-- Model control: `lms ps` / `lms load <model> --context-length N --parallel 1 --gpu <ratio> -y` / `lms unload --all`.
-- The box runs **LM Studio Bionic** (agent app) — no GUI server tab. All
-  server config via `lms` CLI or `~\.lmstudio\.internal\http-server-config.json`
-  (LAN bind: `networkInterface: "0.0.0.0"`, persisted; JIT loading toggle too).
-- Bionic's context auto-fit floor: `~\.lmstudio\apps\bionic\.internal\settings.json`
-  → `localModels.autoFitMinContextLength` (raised to 32768; if loads clamp to
-  16384 again, check this first).
-- **Cold-boot gotcha:** if models won't load and `lms runtime survey` shows no
-  GPU, Bionic raced the AMD Vulkan driver at login. Fix:
-  `schtasks /run /tn RestartBionic` (task already exists on the box), wait
-  ~20s, re-survey.
-- Windows is **pt-BR locale**: never use English group/account names in
-  commands (use SIDs, e.g. `*S-1-5-32-544`); `ping` is firewall-blocked —
-  probe TCP instead.
+Machine-specific server management (SSH alias, OS quirks, boot-race fixes)
+lives in `CLAUDE.local.md` — gitignored, not part of the public repo, since
+it's this contributor's personal box, not something the project depends on.
 
 ## Benchmark protocol (IMPORTANT — learned the hard way)
 
-1. **Unload every other model first**: `ssh winbox "lms unload --all"`, then
-   load ONLY the target model explicitly. JIT loading will otherwise load a
-   second model alongside (27GB on a 16GB card happened) and poison the run.
-2. **Quiet GPU**: no interactive Claude Code sessions against the server while
+1. **One run at a time, foreground, to completion.** Never launch a benchmark
+   in the background or run two in parallel — a second run on the same server
+   contends for the GPU and poisons both results (see rule 2). Start the
+   script, wait for it to exit, THEN read and evaluate the output. Don't do
+   other work or spend tokens polling while it runs — it's a single blocking
+   step, not a background job.
+2. **Unload every other model first**, then load ONLY the target model
+   explicitly. JIT loading will otherwise load a second model alongside (27GB
+   on a 16GB card happened) and poison the run.
+3. **Quiet GPU**: no interactive Claude Code sessions against the server while
    a benchmark runs — their 25-30K prefills monopolize the engine.
-3. Always pass `--model` explicitly to `run_bench.py` — never trust
+4. Always pass `--model` explicitly to `run_bench.py` — never trust
    auto-detect (JIT makes "first model in /v1/models" arbitrary).
-4. Record backend + version flags on every run even if unchanged.
-5. `results.jsonl` is append-only. Suite files are frozen once used — new
+5. Record backend + version flags on every run even if unchanged.
+6. `results.jsonl` is append-only. Suite files are frozen once used — new
    tasks go in a new suite version.
-6. Model-side config that made runs comparable so far: `--parallel 1`,
+7. Model-side config that made runs comparable so far: `--parallel 1`,
    explicit `--context-length`, note `--gpu` ratio in `hardware_note`.
 
 ## Model facts (as of 2026-07-23)
@@ -52,5 +44,5 @@ for the results schema. Server details (IP, model) live in `.env` (gitignored).
 
 ## Public repo rules
 
-Never commit: IPs, `.env`, `.claude/settings.local.json`, personal paths.
-`.env.example` uses placeholders only.
+Never commit: IPs, `.env`, `.claude/settings.local.json`, `CLAUDE.local.md`,
+`DEVLOG.md`, personal paths. `.env.example` uses placeholders only.
