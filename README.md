@@ -5,23 +5,18 @@ by [LM Studio](https://lmstudio.ai) on another machine on your LAN — plus
 reusable benchmark infrastructure to measure whether your setup changes
 (model, quantization, backend, versions) actually help.
 
-Zero API cost, zero cloud. A repurposed gaming PC serves inference; the dev
-machine runs the agent.
-
 ## Architecture
 
 ```
-┌─────────────────────┐         LAN          ┌──────────────────────────┐
-│ Dev machine (Mac)   │  ───────────────────▶│ Inference box (Windows)  │
-│ Claude Code (agent) │  Anthropic-compat    │ LM Studio server         │
-│ this repo, git, IDE │  POST /v1/messages   │ GGUF model on GPU        │
-└─────────────────────┘                      └──────────────────────────┘
+┌───────────────────────┐        LAN         ┌──────────────────────────┐
+│ Dev machine           │  ─────────────────▶│ Inference box            │
+│ Claude Code (agent)   │  Anthropic-compat   │ LM Studio server         │
+│ this repo, git, IDE   │  POST /v1/messages  │ GGUF model on GPU        │
+└───────────────────────┘                     └──────────────────────────┘
 ```
 
-Reference hardware for the numbers in `DEVLOG.md`: Ryzen 7 5700X3D, 32GB RAM,
-AMD RX 7800 XT 16GB, LM Studio on Windows with the **Vulkan** llama.cpp backend
-(no ROCm/Docker — deliberate, to keep the Windows side simple). Any
-OpenAI/Anthropic-compatible server on any hardware works the same way.
+Any OpenAI/Anthropic-compatible server works the same way, on any OS or
+hardware — point `.env` at your own setup.
 
 ## How it works
 
@@ -45,9 +40,11 @@ Two gotchas the setup handles for you:
 ## Setup
 
 On the **server machine** (once): install LM Studio, download a model
-(see model notes in `DEVLOG.md`), start the server, and enable
-**"Serve on Local Network"** — without it the server binds to `localhost` only
-and is unreachable over the LAN. Give the machine a DHCP reservation.
+(see `CLAUDE.md` for model notes — tool-calling support varies a lot between
+GGUF chat templates, worth checking before picking one), start the server,
+and enable **"Serve on Local Network"** — without it the server binds to
+`localhost` only and is unreachable over the LAN. Give the machine a DHCP
+reservation.
 
 On the **dev machine**:
 
@@ -84,8 +81,3 @@ Every run appends one full-configuration record to `benchmarks/results.jsonl`
   placeholders is committed.
 - Nothing here exposes the server beyond your LAN. Don't port-forward LM Studio
   to the internet; it has no auth.
-
-## Project log
-
-`DEVLOG.md` — raw, factual log of decisions, numbers, and friction. Appended at
-checkpoints, never polished.
